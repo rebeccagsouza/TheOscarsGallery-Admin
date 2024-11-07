@@ -42,14 +42,13 @@ const sidebarItems = [
 ];
 
 type MenuProps = {
-  collapsed: boolean;
   setActiveKey: (key: string) => void;
 };
 
-export default function SidebarMenu({ collapsed , setActiveKey}: MenuProps) {
+export default function SidebarMenu({ setActiveKey}: MenuProps) {
 
   return (
-    <Sider trigger={null} collapsible collapsed={collapsed}>
+    <Sider trigger={null} >
       <div className="logo" />
       <Menu
         theme="dark"

@@ -9,17 +9,19 @@ type ContentProps = {
 };
 
 export default function Content({ activeKey }: ContentProps) {
-  const [inputValue, setInputValue] = useState("");
+  const [yearInput, setYearInput] = useState(""); // Ano para a rota de salvar filmes vencedores
+  const [inputValue, setInputValue] = useState(""); // Usado para outras chaves
+  const [jsonInput, setJsonInput] = useState(""); // JSON para salvar filmes vencedores
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Mapeamento das chaves para rotas e métodos
-  const routeMap: { [key: string]: { url: string; method: "get" | "post" | "put" | "delete" } } = {
-    "1": { url: "/movies/oscar-winners/save/year", method: "post" },
-    "2": { url: "/movies/oscar-winners/update/year", method: "put" },
-    "3": { url: "/movies/oscar-winners/delete/year", method: "delete" },
-    "4": { url: "/movies/oscar-winners/update-imdb/year", method: "put" },
-    "5": { url: "/movies/imdb", method: "get" },
+  // Mapeamento de rotas e métodos
+  const routeMap: { [key: string]: { url: string; method: "get" | "post" | "put" | "delete", label: string } } = {
+    "1": { url: "/movies/oscar-winners/save/year", method: "post", label: 'Adicionar novo ano no banco' },
+    "2": { url: "/movies/oscar-winners/update/year", method: "put", label: 'Atualizar novo ano no banco' },
+    "3": { url: "/movies/oscar-winners/delete/year", method: "delete", label: 'Deletar algum ano do banco' },
+    "4": { url: "/movies/oscar-winners/update-imdb/year", method: "put", label: 'Adicionar mais dados via banco do imdb' },
+    "5": { url: "/movies/imdb", method: "get", label: 'Buscar informações de algum filme' },
   };
 
   const handleApiCall = async () => {
@@ -32,35 +34,76 @@ export default function Content({ activeKey }: ContentProps) {
 
     try {
       setError(null);
-      const fullUrl = activeKey === "5" ? `${url}/${inputValue}` : `${url}/${inputValue}`;
-      const res = await api({ method, url: fullUrl });
+      let payload;
+      let fullUrl = url;
+
+      if (activeKey === "1") {
+        // Verifica se o ano e o JSON foram preenchidos
+        if (!yearInput || !jsonInput) {
+          setError("Por favor, preencha o ano e o JSON.");
+          return;
+        }
+        // Constrói a URL com o ano e envia o JSON como payload
+        fullUrl = `${url}/${yearInput}`;
+        payload = JSON.parse(jsonInput);
+      } else {
+        // Para as outras rotas, usa o valor do input padrão
+        fullUrl = `${url}/${inputValue}`;
+        payload = undefined;
+      }
+
+      const res = await api({ method, url: fullUrl, data: payload });
       setResponse(res.data);
     } catch (err: any) {
       setError(err.response?.data || "Erro ao realizar a requisição");
     }
   };
 
+  const inputStyle = "mb-4 w-[300px] mr-[8px]"
+
   return (
     <div>
-      <h3 className="text-2xl font-semibold mb-4">
-        {activeKey ? `Ação selecionada: ${routeMap[activeKey]?.url}` : "Selecione uma ação no menu"}
+      <h3 className="text-[#4e5861] text-2xl font-semibold">
+        {activeKey ? `${routeMap[activeKey]?.label}` : "Selecione uma ação no menu"}
       </h3>
+      {activeKey ? <h5 className="mb-4 text-[#5d3ac5] text-[14px] font-semibold italic">{routeMap[activeKey]?.url}</h5> : ""}
       {activeKey && (
         <div>
-          <Input
-            placeholder="Digite o ano ou IMDb ID"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            style={{ marginBottom: "1rem", width: "300px" }}
-          />
+          {activeKey === "1" ? (
+            <div>
+              <Input
+                placeholder="Digite o ano"
+                value={yearInput}
+                onChange={(e) => setYearInput(e.target.value)}
+                className={inputStyle}
+              />
+              <Input.TextArea
+                placeholder="Insira o JSON para salvar os filmes vencedores"
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                rows={8}
+                style={{ marginBottom: "1rem", width: "100%" }}
+              />
+            </div>
+          ) : (
+            <Input
+              placeholder="Digite o ano ou IMDb ID"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className={inputStyle}
+            />
+          )}
           <Button type="primary" onClick={handleApiCall}>
             Disparar Requisição
           </Button>
-          <div style={{ marginTop: "1rem" }}>
-            <h4>Resposta</h4>
-            {response && <pre>{JSON.stringify(response, null, 2)}</pre>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
-          </div>
+          {
+            response &&
+                <div style={{ marginTop: "1rem" }}>
+                    <h4>Resposta</h4>
+                    <pre>{JSON.stringify(response, null, 2)}</pre>
+                </div>
+          }
+          { error && <p style={{ color: "red" }}>{error}</p> }
         </div>
       )}
     </div>
